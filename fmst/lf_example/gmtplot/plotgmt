@@ -1,0 +1,18 @@
+#
+# Open bounds file and read in variables
+#
+set bds=`cat bound.gmt`
+#
+set bounds = "-R${bds[1]}/${bds[2]}/${bds[3]}/${bds[4]}"
+set proj = "-Jl135:00/-40:00/-5:0/-22:30/0.4"
+set psfile = "plotgmt.ps"
+#
+xyz2grd grid2dv.z -Ggrid2dv.grd -I${bds[5]}/${bds[6]} -ZLB $bounds
+#xyz2grd grid2dt.z -Ggrid2dt.grd -I${bds[7]}/${bds[8]} -ZLB $bounds
+grdimage grid2dv.grd $bounds $proj -Cvelgradproj.cpt -K -P >! $psfile
+psscale -Cvelgradproj.cpt -Ba0.2f0.2 -D10.0/19.3/12.00/0.4h -O -K -P >> $psfile
+#grdcontour grid2dt.grd $bounds $proj -W3 -C20.0 -O -K -P >> $psfile
+psxy rays.dat $bounds $proj -W4 -M -O -K -P >> $psfile
+psxy receivers.dat $bounds $proj -: -St0.40 -G50/50/200 -W3 -O -K -P >> $psfile
+psxy sources.dat $bounds $proj -: -Sa0.50 -G200/50/50 -W3 -O -K -P >> $psfile
+pscoast $bounds $proj -Ia -W5 -A2 -Ba10f5/a10f5 -Dh -O -P >> $psfile

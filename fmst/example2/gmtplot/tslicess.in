@@ -1,0 +1,37 @@
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c Input file names
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+../gridc.vtx                  c: True model velocity vertices
+../gridi.vtx                  c: Reference model velocity vertices
+../travelt.out                c: Traveltime field
+../raypath.out                c: Raypaths
+ccccccccccccccccccccccccccccccccccccccccccccccc
+c Bounding box file
+ccccccccccccccccccccccccccccccccccccccccccccccc
+bound.gmt                     c: GMT plotting bounds for depth slice
+ccccccccccccccccccccccccccccccccccccccccccccccc
+c Plot sources and receivers
+ccccccccccccccccccccccccccccccccccccccccccccccc
+1                             c: Plots sources? (0=no,1=yes)
+../sources.dat                c: Source input file
+sources.dat                   c: Source output file
+1                             c: Plot receivers? (0=no,1=yes)
+../receivers.dat              c: Receiver input file
+receivers.dat                 c: Receiver output file
+ccccccccccccccccccccccccccccccccccccccccccccccc
+c Velocity grid parameters
+ccccccccccccccccccccccccccccccccccccccccccccccc
+1                             c: Plot velocity slice? (0=no,1=yes)
+0                             c: Absolute (0) or relative (1) velocity
+15  15                        c: Dicing in theta,phi
+grid2dv.z                     c: GMT output file for velocity slice
+ccccccccccccccccccccccccccccccccccccccccccccccc
+c Traveltime grid parameters
+ccccccccccccccccccccccccccccccccccccccccccccccc
+0                             c: Plot traveltime slice? (0=no,1=yes)
+grid2dt.z                     c: GMT output for traveltime slice
+ccccccccccccccccccccccccccccccccccccccccccccccc
+c Ray path parameters
+ccccccccccccccccccccccccccccccccccccccccccccccc
+1                             c: Plot raypaths? (0=no,1=yes)
+rays.dat                      c: Output ray path file for depth slice

@@ -5,6 +5,8 @@ import obspy
 import warnings
 from lasif import colors
 import os
+import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap, shiftgrid
 
 class StaInfo(object):
     """
@@ -151,6 +153,8 @@ class StaLst(object):
     def write(self, outdir, issource=False):
         """Write station list to output directory
         """
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
         L=len(self.stations)
         if issource:
             outfname=outdir+'/sources.dat'
@@ -163,7 +167,8 @@ class StaLst(object):
         return
     
     def write_otime(self, outdir, ELst, err=0.1, v0=3.0):
-        
+        if not os.path.isdir(outdir):
+            os.makedirs(outdir)
         with open(outdir+'/otimes.dat','wb') as f:
             for event in ELst:
                 for sta in self.stations:
@@ -181,6 +186,7 @@ class StaLst(object):
             for sta in self.stations:
                 lines=f.readline()
                 lines=lines.split()
+                # print lines
                 T=float(lines[1])
                 lons=np.append(lons, sta.lon)
                 lats=np.append(lats, sta.lat)
@@ -198,7 +204,7 @@ class StaLst(object):
 
 class vmodel(object):
     """
-    An object to handle input model for SPECFEM2D.
+    An object to handle input model for FMST
     ===========================================================================
     Parameters:
     minlat, maxlat, minlon, maxlon  - bound of study region
@@ -244,6 +250,8 @@ class vmodel(object):
         inlat=InArr[:,1]
         inV=InArr[:,2]
         for i in xrange(inlon.size):
+            if inV[i]==0:
+                continue
             lon=inlon[i]
             lat=inlat[i]
             index = np.where((self.lonArr==lon)*(self.latArr==lat))
@@ -257,7 +265,7 @@ class vmodel(object):
         for iteration in xrange(int(sigma)):
             for i in np.arange(1,self.lat.size+1):
                 for j in np.arange(1,self.lon.size+1):
-                    v_filtered[i,j]=(self.vArr[i,j]+self.vArr[i+1,j]+self.vArr[i-1,j]+self.vArr[i,j+1]+self.vArr[i,j-1])/5.0
+                    v_filtered[i,j]=(self.cushion_vArr[i,j]+self.cushion_vArr[i+1,j]+self.cushion_vArr[i-1,j]+self.cushion_vArr[i,j+1]+self.cushion_vArr[i,j-1])/5.0
         self.cushion_vArr=v_filtered
         self._change_v()
         return
@@ -304,7 +312,7 @@ class vmodel(object):
         m.drawmapboundary(fill_color="white")
         cmap = colors.get_colormap('tomo_80_perc_linear_lightness')
         x, y=m(self.lonArr, self.latArr)
-        m.pcolormesh(x, y, self.vArr, cmap=cmap, shading='gouraud')
+        m.pcolormesh(x, y, self.vArr, cmap=cmap, shading='gouraud', vmin=2.9, vmax=3.4)
         m.colorbar()
         plt.show()
         return
@@ -323,338 +331,4 @@ class vmodel(object):
                     f.writelines('%12.8f%12.8f\n' %(self.cushion_vArr[ilat, ilon], self.cushion_errV[ilat, ilon]))
                 f.writelines('\n')
         return
-#     
-#     def BlockHomoAnomaly(self, Xmin, Xmax, Zmin, Zmax, va, dv=None):
-#         """
-#         Inplement block anomaly in the model for Vs
-#         =============================================================================
-#         Input Parameters:
-#         Xmin, Xmax, Zmin, Zmax    - defines the bound
-#         va                                           - anomalous velocity
-#         dv                                           - velocity anomaly in percentage( default is None, which means use va )
-#         =============================================================================
-#         """
-#         Xindex=(self.XArr>=Xmin)*(self.XArr<=Xmax)
-#         Zindex=(self.ZArr>=Zmin)*(self.ZArr<=Zmax)
-#         Index=Xindex*Zindex
-#         if dv!=None:
-#             self.VsArr[Index]=self.VsArr[Index]*(1+dv)
-#         else:
-#             self.VsArr[Index]=va
-#         if self.plotflag==True:
-#             Xindex=(self.XArrPlot>=Xmin)*(self.XArrPlot<=Xmax)
-#             Zindex=(self.ZArrPlot>=Zmin)*(self.ZArrPlot<=Zmax)
-#             Index=Xindex*Zindex
-#             if dv!=None:
-#                 self.VsArrPlot[Index]=self.VsArrPlot[Index]*(1+dv)
-#             else:
-#                 self.VsArrPlot[Index]=va
-#         return
-#     
-#     def CircleHomoAnomaly(self, Xc, Zc, R, va, dv=None):
-#         """
-#         Inplement circle anomaly in the model for Vs
-#         =============================================================================
-#         Input Parameters:
-#         Xc, Zc     - center of the circle
-#         R             - radius
-#         va           - anomalous velocity
-#         dv           - velocity anomaly in percentage( default is None, which means use va )
-#         =============================================================================
-#         """
-#         print 'Adding homo circle anomaly Xc=', Xc,' Zc=', Zc, ' R=',R
-#         dArr = np.sqrt( (self.XArr-Xc)**2 + (self.ZArr-Zc)**2)
-#         Index = dArr <= R
-#         if dv!=None:
-#             self.VsArr[Index]=self.VsArr[Index]*(1+dv)
-#         else:
-#             self.VsArr[Index]=va
-#         if self.plotflag==True:
-#             dArr = np.sqrt( (self.XArrPlot-Xc)**2 + (self.ZArrPlot-Zc)**2)
-#             Index = dArr <= R
-#             if dv!=None:
-#                 self.VsArrPlot[Index] = self.VsArrPlot[Index]*(1+dv)
-#             else:
-#                 self.VsArrPlot[Index]=va
-#         return
-#     
-#     def CircleLinearAnomaly(self, Xc, Zc, R, va, dv=None):
-#         """
-#         Inplement circle anomaly with linear change towards center in the model for Vs
-#         Assuming the background Vs is homogeneous
-#         =============================================================================
-#         Input Parameters:
-#         Xc, Zc     - center of the circle
-#         R             - radius
-#         va           - anomalous velocity
-#         dv           - velocity anomaly in percentage( default is None, which means use va )
-#         =============================================================================
-#         """
-#         dArr = np.sqrt( (self.XArr-Xc)**2 + (self.ZArr-Zc)**2)
-#         if dv==None:
-#             dva = va - self.Vs
-#         else:
-#             dva = self.Vs*dv
-#         delD = R - dArr
-#         IndexIn = (delD >=0)
-#         # self.VsArr = 0.5 * (np.sign(delD) + 1) * delD/R * dva + self.VsArr
-#         self.VsArr = IndexIn * delD/R * dva + self.VsArr
-#         if self.plotflag==True:
-#             dArr = np.sqrt( (self.XArrPlot-Xc)**2 + (self.ZArrPlot-Zc)**2)
-#             delD = R - dArr
-#             IndexIn = delD >=0
-#             # self.VsArrPlot = 0.5 * (np.sign(delD) + 1) * delD/R * dva + self.VsArrPlot
-#             self.VsArrPlot = IndexIn * delD/R * dva + self.VsArrPlot
-#         return
-#     
-#     def CircleCosineAnomaly(self, Xc, Zc, R, va=None, dv=None):
-#         """
-#         Inplement circle anomaly with cosine change towards center in the model for Vs
-#         Assuming the background Vs is homogeneous
-#         =============================================================================
-#         Input Parameters:
-#         Xc, Zc     - center of the circle
-#         R             - radius
-#         va           - anomalous velocity
-#         dv           - velocity anomaly in percentage( default is None, which means use va )
-#         =============================================================================
-#         """
-#         dArr = np.sqrt( (self.XArr-Xc)**2 + (self.ZArr-Zc)**2)
-#         if va !=None:
-#             dva = va - self.Vs
-#         else:
-#             dva = self.Vs*dv
-#         delD = R - dArr
-#         IndexIn = (delD >=0)
-#         # self.VsArr = 0.5 * (np.sign(delD) + 1) * ( 1+np.cos( np.pi* dArr / R ) ) * dva + self.VsArr
-#         self.VsArr = IndexIn * ( 1+np.cos( np.pi* dArr / R ) )/2. * dva + self.VsArr
-#         if self.plotflag==True:
-#             dArr = np.sqrt( (self.XArrPlot-Xc)**2 + (self.ZArrPlot-Zc)**2)
-#             delD = R - dArr
-#             IndexIn = (delD >=0)
-#             # self.VsArrPlot = 0.5 * (np.sign(delD) + 1) * ( 1+np.cos( np.pi* dArr / R ) ) * dva + self.VsArrPlot
-#             self.VsArrPlot = IndexIn * ( 1+np.cos( np.pi* dArr / R ) )/2. * dva + self.VsArrPlot
-#         return
-#     
-#     def RingHomoAnomaly(self, Xc, Zc, Rmax, Rmin, va, dv=None):
-#         """
-#         Inplement ring anomaly in the model for Vs
-#         =============================================================================
-#         Input Parameters:
-#         Xc, Zc           - center of the circle
-#         Rmax, Rmin - radius max/min
-#         va                 - anomalous velocity
-#         dv                 - velocity anomaly in percentage( default is None, which means use va )
-#         =============================================================================
-#         """
-#         if Rmin < self.dx:
-#             self.CircleHomoAnomaly(Xc=Xc, Zc=Zc, R=Rmax, va=va, dv=dv)
-#             return
-#         print 'Adding homo ring anomaly Xc=', Xc,' Zc=', Zc, ' Rmax=',Rmax, ' Rmin=', Rmin
-#         dArr = np.sqrt( (self.XArr-Xc)**2 + (self.ZArr-Zc)**2)
-#         Index = (dArr <= Rmax) * (dArr > Rmin) 
-#         if dv!=None:
-#             self.VsArr[Index]=self.VsArr[Index]*(1+dv)
-#         else:
-#             self.VsArr[Index]=va
-#         if self.plotflag==True:
-#             dArr = np.sqrt( (self.XArrPlot-Xc)**2 + (self.ZArrPlot-Zc)**2)
-#             Index = (dArr <= Rmax) * (dArr > Rmin) 
-#             if dv!=None:
-#                 self.VsArrPlot[Index] = self.VsArrPlot[Index]*(1+dv)
-#             else:
-#                 self.VsArrPlot[Index]=va
-#         return
-#     
-#     
-#     def ASDFmodel(self, infname, per=10., phgr=1, verbose=True):
-#         """
-#         Read ASDF model
-#         =============================================================================
-#         Input Parameters:
-#         infname        - input file name
-#         per                - period
-#         phgr              - use phase(1) or group(2) velocity
-#         =============================================================================
-#         """
-#         dbase = pyasdf.ASDFDataSet(infname)
-#         if verbose==True:
-#             print dbase.auxiliary_data.Disp
-#         perArr = dbase.auxiliary_data.Disp.VP000.data.value[0, :]
-#         vArr=dbase.auxiliary_data.Disp.VP000.data.value[phgr, :]
-#         if not np.any(perArr==per):
-#             raise ValueError('Period ', per,' sec not in the theoretical dispersion curve !' )
-#         Vs0 = vArr[perArr==per]* 1000.
-#         self.VsArr[:] = Vs0 
-#         if self.plotflag == True:
-#             self.VsArrPlot[:]=Vs0 
-#         for auxid in dbase.auxiliary_data.Disp.list()[1:]:
-#             perArr = dbase.auxiliary_data.Disp[auxid].data.value[0, :]
-#             vArr=dbase.auxiliary_data.Disp[auxid].data.value[phgr, :]
-#             Rmax=dbase.auxiliary_data.Disp[auxid].parameters['Rmax']
-#             Rmin=dbase.auxiliary_data.Disp[auxid].parameters['Rmin']
-#             x=dbase.auxiliary_data.Disp[auxid].parameters['x']
-#             y=dbase.auxiliary_data.Disp[auxid].parameters['y']
-#             Vs = vArr[perArr==per] * 1000.
-#             self.RingHomoAnomaly(Xc=x, Zc=y, Rmax=Rmax, Rmin=Rmin, va=Vs)
-#         return
-#             
-#     
-#     
-#     def get_GLL(self):
-#         """
-#         Set Gauss-Lobatto-Legendre(GLL) points for a given Lagrange polynomial degree.
-#         To construct a polynomial of degree n passing through n+1 data points. 
-#         """
-#         if self.lpd == 2:
-#             knots = np.array([-1.0, 0.0, 1.0])
-#         elif self.lpd == 3:
-#             knots = np.array([-1.0, -0.4472135954999579, 0.4472135954999579, 1.0])
-#         elif self.lpd == 4:
-#             knots = np.array([-1.0, -0.6546536707079772, 0.0, 0.6546536707079772, 1.0])
-#             # knots = np.array([-1.0, -1./7.*np.sqrt(21.), 0.0, 1./7.*np.sqrt(21.), 1.0])
-#         elif self.lpd == 5:
-#             knots = np.array([-1.0, -0.7650553239294647, -0.2852315164806451, 0.2852315164806451, 0.7650553239294647, 1.0])
-#         elif self.lpd == 6:
-#             knots = np.array([-1.0, -0.8302238962785670, -0.4688487934707142, 0.0, 0.4688487934707142, 0.8302238962785670, 1.0])
-#         elif self.lpd == 7:
-#             knots = np.array([-1.0, -0.8717401485096066, -0.5917001814331423,\
-#                 -0.2092992179024789, 0.2092992179024789, 0.5917001814331423, 0.8717401485096066, 1.0])
-#         self.knots=knots
-#         return
-#     
-#     def plot(self, ds=1000, unit='km', vmin=2.5, vmax=3.5):
-#         """Plot velocity model
-#         =============================================================================
-#         Input Parameters:
-#         ds                          - grid spacing
-#         unit                       - unit
-#         vmin, vmax          - vmin,vmax for colorbar
-#         =============================================================================
-#         """
-#         
-#         if self.plotflag==False:
-#             raise ValueError('No plot array!')
-#         plt.figure(figsize=(16,13))
-#         if self.regular==True:
-#             plt.pcolormesh(self.XArrPlot/ds, self.ZArrPlot/ds, self.VsArrPlot/ds, cmap='seismic_r', vmin=vmin, vmax=vmax)
-#         else:
-#             xi = np.linspace(self.xmin, self.xmax, self.Nx*10)
-#             zi = np.linspace(self.zmin, self.zmax, self.Nz*10)
-#             self.xi, self.zi = np.meshgrid(xi, zi)
-#             #-- Interpolating at the points in xi, yi
-#             self.vi = griddata(self.XArr, self.ZArr, self.VsArr, self.xi, self.zi, 'linear')
-#             plt.pcolormesh(self.xi/ds, self.zi/ds, ma.getdata(self.vi)/ds, cmap='seismic_r', vmin=vmin, vmax=vmax)
-#         ##########################################
-#         # plt.plot( 320, 320 , 'y*', markersize=30)
-#         ##########################################
-#         plt.xlabel('x('+unit+')', fontsize=30)
-#         plt.ylabel('z('+unit+')', fontsize=30)
-#         plt.colorbar()
-#         plt.axis([self.xmin/ds, self.xmax/ds, self.zmin/ds, self.zmax/ds])
-#         # plt.axis('scaled')
-#         plt.yticks(fontsize=20)
-#         plt.xticks(fontsize=20)
-#         plt.show()
-#         return
-#     
-#     def GetMinMaxV(self):
-#         """
-#         Get minimum/maximum vs 
-#         """
-#         vmin=self.VsArr.min()
-#         vmax=self.VsArr.max()
-#         return vmin, vmax
-#     
-# class InputChecker(object):
-#     """
-#     An object to check stability condition given input parameters.
-#     =============================================================================
-#     Parameters:
-#     dt                   - time step
-#     dx, dz            - element spacing 
-#     fc                    - central frequency
-#     lpd                 - Lagrange polynomial degree
-#     vmin, vmax   - minimum/maximum velocity
-#     =============================================================================
-#     """
-#     def __init__(self, dt, dx, dz, fc, lpd, vmin, vmax):
-#         self.dt=dt
-#         self.dx=dx
-#         self.dz=dz
-#         self.fc=fc
-#         self.lpd=lpd
-#         self.get_GLL()
-#         self.vmin=vmin
-#         self.vmax=vmax
-#         return
-#     
-#     def get_GLL(self):
-#         """
-#         Set Gauss-Lobatto-Legendre(GLL) points for a given Lagrange polynomial degree.
-#         To construct a polynomial of degree n passing through n+1 data points. 
-#         """
-#         if self.lpd == 2:
-#             knots = np.array([-1.0, 0.0, 1.0])
-#         elif self.lpd == 3:
-#             knots = np.array([-1.0, -0.4472135954999579, 0.4472135954999579, 1.0])
-#         elif self.lpd == 4:
-#             knots = np.array([-1.0, -0.6546536707079772, 0.0, 0.6546536707079772, 1.0])
-#         elif self.lpd == 5:
-#             knots = np.array([-1.0, -0.7650553239294647, -0.2852315164806451, 0.2852315164806451, 0.7650553239294647, 1.0])
-#         elif self.lpd == 6:
-#             knots = np.array([-1.0, -0.8302238962785670, -0.4688487934707142, 0.0, 0.4688487934707142, 0.8302238962785670, 1.0])
-#         elif self.lpd == 7:
-#             knots = np.array([-1.0, -0.8717401485096066, -0.5917001814331423,\
-#                 -0.2092992179024789, 0.2092992179024789, 0.5917001814331423, 0.8717401485096066, 1.0])
-#         self.knots=knots
-#         return
-#     
-#     def CheckMinLambda(self, freqfactor=2.5):
-#         """
-#         Check grid spacing with wavelength minimum wavelength.
-#         ==============================================
-#         Input Parameters:
-#         freqfactor       - fmax = freqfactor*fc
-#         ==============================================
-#         """
-#         lambdamin=self.vmin/self.fc/freqfactor
-#         dxArr=self.dx*np.diff( (0.5+0.5*(self.knots)) )
-#         dzArr=self.dz*np.diff( (0.5+0.5*(self.knots)) )
-#         dsmax=max(dxArr.max(), dzArr.max())
-#         # dsmax=max(self.dx, self.dz)
-#         # Need checking! (in manual: threshold value is around 4.5 points
-#         # per wavelength in elastic media and 5.5 in acoustic media), 4.5 grid points OR 4.5 element points
-#         if dsmax * 4.5 > lambdamin:
-#             raise ValueError('Grid spacing is too large: ', str(dsmax),' for ',lambdamin, ' m')
-#         else:
-#             print 'Grid spacing:', str(dsmax),'m for',lambdamin, 'm'
-#         return
-#     
-#     def CheckCFLCondition(self, C=0.35):
-#         """
-#         Check Courant-Frieddrichs-Lewy stability condition
-#         ===========================================
-#         Input Parameters:
-#         C - Courant number (default = 0.35, normally 0.3~0.4)
-#         ===========================================
-#         """
-#         dxArr=self.dx*np.diff( (0.5+0.5*(self.knots)) )
-#         dzArr=self.dz*np.diff( (0.5+0.5*(self.knots)) )
-#         dsmin=min(dxArr.min(), dzArr.min())
-#         dtCFL=C*dsmin/self.vmax
-#         if self.dt > dtCFL:
-#             raise ValueError('Time step violates Courant-Frieddrichs-Lewy Condition: ', dt, dtCFL)
-#         else:
-#             print 'Time Step: ',self.dt,' s Required Time Step: ', dtCFL, 's'
-#         return
-#     
-#     def Check(self, freqfactor=2.5, C=0.35):
-#         """
-#         Check minimum wavelenght and Courant conditions
-#         """
-#         print '=========== Checking stability conditions ==========='
-#         self.CheckMinLambda(freqfactor=freqfactor)
-#         self.CheckCFLCondition(C=C)
-#         print '===========  Stability conditions checked  ==========='
-#         return 
+

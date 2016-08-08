@@ -1,0 +1,107 @@
+#!/usr/bin/ksh
+#
+############################################
+# Script for running spherical shell
+# tomography program
+############################################
+#
+#
+########################################################
+# Program and files for solving the forward problem with
+# the Fast Marching Method
+########################################################
+#
+# Name of program for calculating FMM traveltimes
+fmm=fm2dss
+# Name of file containing FMM traveltimes
+ttim=rtravel.out
+# Name of file containing initial traveltimes
+ittim=itimes.dat
+#
+#########################################################
+# Program and files for solving the inverse problem using
+# subspace inversion
+#########################################################
+#
+# Name of program for performing inversion
+inv=subinvss
+# Name of file containing iteration number
+itn=subiter.in
+# Name of file containing initial grid
+ing=gridi.vtx
+# Name of file containing current grid
+cug=gridc.vtx
+#
+#########################################################
+# Program and files for calculating traveltime
+# residuals
+#########################################################
+#
+# Name of program for calculating traveltime residuals
+resid=residualss
+# Name of output file for calculating traveltime residuals
+resout=residuals.dat
+#
+###############################
+###############################
+cd=chdir
+rm=/usr/bin/rm
+cp=/usr/bin/cp
+typeset -i COUNT
+ifile=ttomoss.in
+typeset -i NI
+typeset -i ITER
+###############################
+###############################
+#
+# Open input file and read in variables
+#
+exec 3<$ifile
+  read -u3 NI
+exec 3<&-
+#
+# Start by constructing the velocity grid
+#
+cp $ing $cug
+rm $itn
+COUNT=1
+exec 4>$itn
+   print -u4 $COUNT
+exec 4<&-
+#
+# Now run FMM once to generate reference traveltimes
+# and the Frechet matrix.
+#
+$fmm
+#
+# Copy initial traveltimes to itimes file
+#
+cp $ttim $ittim 
+#
+# Calculate initial residual
+#
+rm $resout
+exec 5>$resout
+$resid | (read ttres; print -u5 $ttres)
+#
+# Now begin a loop to iteratively apply subspace inversion
+# and FMM
+#
+ITER=1
+while [[ $ITER -le $NI ]]
+do
+   $inv
+   $fmm
+#
+#  Calculate traveltime residual
+#
+   $resd
+   $resid | (read ttres; print -u5 $ttres)
+   ITER=ITER+1
+   rm $itn
+   COUNT=ITER
+   exec 4>$itn
+      print -u4 $COUNT
+   exec 4<&-
+done
+exec 5<&-

@@ -1,0 +1,12 @@
+ccccccccccccccccccccccccccccccccccccccccccccc
+c Parameter file for constructing synthetic
+c set of observed traveltime residuals.
+ccccccccccccccccccccccccccccccccccccccccccccc
+../rtravel.out               c: File containing synthetic observed times
+../sources.dat               c: File containing source info.
+../receivers.dat             c: File containing receiver info.
+otimes.dat                   c: Output file of traveltime residuals
+0                            c: Add Gaussian noise to residuals? (0=no, 1=yes)
+0.150                        c: Standard deviation of added noise (s)
+-479                         c: Random seed for noise generation
+0.10                         c: Default data covariance (if above = 0) (s)

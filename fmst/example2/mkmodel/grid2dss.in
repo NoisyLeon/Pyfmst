@@ -1,0 +1,42 @@
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c Set output file name
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+grid2d.vtx
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c Set grid size and location
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+30                    c: Number of grid points in theta (N-S)
+30                    c: Number of grid points in phi (E-W)
+-10.0   -45.0          c: N-S range of grid (degrees)
+110.0   160.0         c: W-E range of grid (degrees)
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c Set grid velocity values
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+2.8                   c: Background velocity
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c Optionally apply random structure
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+0                     c: Add random structure (0=no,1=yes)
+0.80                  c: Standard deviation of random noise
+12324                 c: Random seed for noise generation
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c Uncertainty of model
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+1                     c: Add a priori model covariance (0=no,1=yes)?
+0.3                   c: Diagonal elements of covariance matrix
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c Optionally apply checkerboard
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+0                     c: Add checkerboard (0=no,1=yes)
+0.80                  c: Maximum perturbation of vertices
+2                     c: Checkerboard size (NxN)
+1                     c: Use spacing (0=no,1=yes)
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c Optionally, apply spikes
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+0                     c: Apply spikes (0=no,1=yes)
+2                     c: Number of spikes
+-2.40                 c: Amplitude of spike 1                  
+-12.1  135.0          c: Coordinates of spike 1
+7.40                  c: Amplitude of spike 2
+-31.4  135.0          c: Coordinates of spike 2

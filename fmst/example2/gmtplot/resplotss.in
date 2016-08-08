@@ -1,0 +1,12 @@
+ccccccccccccccccccccccccccccccccccccccccccccc
+c Parameter file for constructing plots
+c of traveltime residuals
+ccccccccccccccccccccccccccccccccccccccccccccc
+0                                 c: Plot initial (0) or final (1) residuals
+histo.dat                         c: Output file with histogram data
+50.0                              c: Print residuals greater than this value
+../otimes.dat                     c: File containing observed times
+../itimes.dat                     c: File containing initial traveltimes
+../sources.dat                    c: File containing source info.
+../receivers.dat                  c: File containing receiver info.
+../rtravel.out                    c: File containing model traveltimes
