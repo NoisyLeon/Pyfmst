@@ -15,10 +15,10 @@ SLst.HomoStaLst(minlat = minlat+0.1, Nlat = 329, minlon=minlon+0.1, Nlon = 549, 
 # SLst.HomoStaLst(minlat = minlat+0.2, Nlat = 164, minlon=minlon+0.2, Nlon = 274, dlat=0.2, dlon=0.2)
 # SLst.write(outdir=outdir)
 # # 
-# ELst=pyfmst.StaLst()
+ELst=pyfmst.StaLst()
 # # # ELst.append(pyfmst.StaInfo('E001',41.306, 129.))
-# ELst.append(pyfmst.StaInfo('E001',41.306, 129.))
-# ELst.write(outdir=outdir, issource=True)
+ELst.append(pyfmst.StaInfo('E001',41.306, 129.))
+ELst.write(outdir=outdir, issource=True)
 # # 
 # SLst.write_otime(outdir=outdir, ELst=ELst)
 # # 
