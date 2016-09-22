@@ -50,6 +50,9 @@ echo " "
 echo "Compilation of synthtss complete"
 $F90 -o tslicess tslicess.f90
 echo " "
+echo "Compilation of tslicess_lf complete"
+$F90 -o tslicess_lf tslicess_lf.f90
+echo " "
 echo "Compilation of tslicess complete"
 ##################################################
 #
@@ -57,7 +60,7 @@ echo "Compilation of tslicess complete"
 #
 ##################################################
 mv fm2dss grid2dss misfitss residualss ../bin
-mv resplotss subinvss synthtss tslicess ../bin
+mv resplotss subinvss synthtss tslicess tslicess_lf ../bin
 ##################################################
 ##################################################
 #Compilation is now complete

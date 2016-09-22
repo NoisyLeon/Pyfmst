@@ -1,0 +1,8 @@
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c Input parameters for computing model roughness
+c and model variance
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+gridc.vtx                     c: Input file of velocity vertices
+gridi.vtx                     c: Reference velocity field
+10       10                   c: Dicing level in theta,phi
+6371.0                        c: Earth radius in km

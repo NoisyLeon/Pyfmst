@@ -260,6 +260,14 @@ class vmodel(object):
             # print lon, lat, self.lonArr[index[0], index[1]], self.latArr[index[0], index[1]]
         return
     
+    def write4field2d(self, outfname):
+        OutArr=np.append(self.lonArr, self.latArr)
+        OutArr=np.append(OutArr, self.vArr)
+        OutArr=OutArr.reshape(3, self.lonArr.size)
+        OutArr=OutArr.T
+        np.savetxt(outfname, OutArr, fmt='%g')
+        return
+    
     def smooth(self, sigma):
         v_filtered=self.cushion_vArr.copy()
         for iteration in xrange(int(sigma)):
@@ -270,7 +278,7 @@ class vmodel(object):
         self._change_v()
         return
     
-    def plot(self, projection='lambert'):
+    def plot(self, projection='lambert', geopolygons=None):
         fig=plt.figure(num=None, figsize=(12, 12), dpi=80, facecolor='w', edgecolor='k')
         lat_centre = (self.maxlat+self.minlat)/2.0
         lon_centre = (self.maxlon+self.minlon)/2.0
@@ -297,11 +305,9 @@ class vmodel(object):
             distEW, az, baz=obspy.geodetics.gps2dist_azimuth(self.minlat, self.minlon,
                                 self.minlat, self.maxlon) # distance is in m
             distNS, az, baz=obspy.geodetics.gps2dist_azimuth(self.minlat, self.minlon,
-                                self.maxlat+1.7, self.minlon) # distance is in m
-            m = Basemap(width=distEW, height=distNS,
-            rsphere=(6378137.00,6356752.3142),\
-            resolution='l', projection='lcc',\
-            lat_1=self.minlat, lat_2=self.maxlat, lon_0=lon_centre+1.2, lat_0=lat_centre,)
+                                self.maxlat+2, self.minlon) # distance is in m
+            m = Basemap(width=distEW, height=distNS, rsphere=(6378137.00,6356752.3142), resolution='l', projection='lcc',\
+                lat_1=self.minlat, lat_2=self.maxlat, lon_0=lon_centre, lat_0=lat_centre+1.5)
             m.drawparallels(np.arange(-80.0,80.0,10.0), linewidth=2, dashes=[2,2], labels=[1,0,0,0], fontsize=15)
             m.drawmeridians(np.arange(-170.0,170.0,10.0), linewidth=2, dashes=[2,2], labels=[0,0,1,1], fontsize=15)
         m.drawcoastlines(linewidth=1.0)
@@ -313,22 +319,30 @@ class vmodel(object):
         cmap = colors.get_colormap('tomo_80_perc_linear_lightness')
         x, y=m(self.lonArr, self.latArr)
         m.pcolormesh(x, y, self.vArr, cmap=cmap, shading='gouraud', vmin=2.9, vmax=3.4)
+        try:
+            geopolygons.PlotPolygon(inbasemap=m)
+        except:
+            pass
         m.colorbar()
         plt.show()
         return
     
     def write(self, outdir):
+        """
+        """
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
         outfname=outdir+'/gridi.vtx'
+        cushion_vArr=self.cushion_vArr[::-1, :]
+        cushion_errV=self.cushion_errV[::-1, :]
         # outvArr=self.vArr[::-1, :]
         with open(outfname, 'w') as f:
             f.writelines('%12.d%12.d\n' %(self.lat.size, self.lon.size))
-            f.writelines('%14.8f%14.8f\n' %(self.lat.min(), self.lon.min()))
-            f.writelines('%14.8f%14.8f\n\n' %(-self.dlat, self.dlon))
+            f.writelines('%14.8f%14.8f\n' %(self.lat.max(), self.lon.min()))
+            f.writelines('%14.8f%14.8f\n\n' %(self.dlat, self.dlon))
             for ilon in xrange(self.Nlon+2):
                 for ilat in xrange(self.Nlat+2):
-                    f.writelines('%12.8f%12.8f\n' %(self.cushion_vArr[ilat, ilon], self.cushion_errV[ilat, ilon]))
+                    f.writelines('%12.8f%12.8f\n' %(cushion_vArr[ilat, ilon], cushion_errV[ilat, ilon]))
                 f.writelines('\n')
         return
 

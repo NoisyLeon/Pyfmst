@@ -335,6 +335,7 @@ CLOSE(10)
 !
 ! Plot raypaths if required.
 !
+
 IF(prp.EQ.1)THEN
    sep='>'
    OPEN(UNIT=20,FILE=irfile,FORM='unformatted',STATUS='old')

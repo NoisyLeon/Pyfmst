@@ -1,0 +1,11 @@
+# GMT common arguments shelf
+-Ba5.0f1.0:Relative arrival time residual (s):/a20f10:Number of rays:WSne
+-Jl135:00/-40:00/-5:0/-22:30/0.4
+-JX5i/8i
+-R-15.0/15.0/0/150
+-jX5i/8i
+EOF
+4
+EOF
+.0000000000/160.0000040000/-44.9999900000/-5.0000000000
+EOF
