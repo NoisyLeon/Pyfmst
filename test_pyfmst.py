@@ -34,7 +34,7 @@ ELst.write(outdir=outdir, issource=True)
 # vmodel.smooth(100)
 # vmodel.read_cv('/projects/life9360/China_2015_disp_v1.0/10.phase.map')
 # vmodel.plot(geopolygons=basins)
-# vmodel.write(outdir=outdir)
+# vmodel.write4fmst(outdir=outdir)
 
 # Convert rtravel.out to txt field2d file
 SLst.travel2field2d(datadir=outdir, outfname='./Tph_10sec_0.1.lst')
