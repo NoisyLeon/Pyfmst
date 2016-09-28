@@ -20,5 +20,5 @@ field=field2d_earth.Field2d(minlon=minlon, maxlon=maxlon, dlon=0.1, minlat=minla
 
 field.read_dbase(datadir='./fmst_dbase_0.2')
 dset=raypath.rayASDF('../rays_0.2.h5')
-# dset.read_raydat('/projects/life9360/code/Pyfmst/fmm_working/gmtplot/rays.dat')
-dset.get_pre_amp(field2d=field, outfname='pre_amp_0.2_0.2.lst')
+dset.read_raydat('/projects/life9360/code/Pyfmst/fmm_working/gmtplot/rays.dat')
+# dset.get_pre_amp(field2d=field, outfname='pre_amp_0.2_0.2.lst')

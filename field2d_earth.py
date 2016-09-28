@@ -34,6 +34,8 @@ lat_diff2_weight_4 = lon_diff2_weight_4.T
 lon_diff2_weight_6 = np.array([[1./90., 	-3./20.,  3./2.,  -49./18., 3./2., -3./20.,  1./90.]])
 lat_diff2_weight_6 = lon_diff2_weight_6.T
 
+geodist = Geod(ellps='WGS84')
+
 def discrete_cmap(N, base_cmap=None):
     """Create an N-bin discrete colormap from the specified input map"""
     # Note that if base_cmap is a string or None, you can simply do
@@ -75,10 +77,6 @@ class Field2d(object):
         self.period=period
         self.fieldtype=fieldtype
         self.Zarr=np.zeros((self.Nlat, self.Nlon))
-        self.minlon_i=minlon
-        self.minlat_i=minlat
-        self.maxlon_i=maxlon
-        self.maxlat_i=maxlat
         return
     
     def copy(self):
@@ -144,7 +142,7 @@ class Field2d(object):
         if fmt=='npy':
             np.save(fname, OutArr)
         elif fmt=='txt':
-            np.savetxt(fname, OutArr, fmt='%g')
+            np.savetxt(fname, OutArr)
         else:
             raise TypeError('Wrong output format!')
         return
@@ -784,12 +782,12 @@ class Field2d(object):
             cb = m.colorbar(im, "bottom", size="3%", pad='2%', ticks=np.arange(20)*0.1+2.5)
         else:
             im=m.pcolormesh(x, y, self.Zarr, cmap='gist_ncar_r', shading='gouraud', vmin=vmin, vmax=vmax)
-            cb = m.colorbar(im, "bottom", size="3%", pad='2%')#, ticks=np.arange(17)*100.)
+            cb = m.colorbar(im, "bottom", size="3%", pad='2%', ticks=np.arange(17)*100.)
         cb.ax.tick_params(labelsize=10)
         if self.fieldtype=='Tph' or self.fieldtype=='Tgr':
-            cb.set_label('sec', fontsize=12, rotation=0)
-        # if self.fieldtype=='Amp':
-        #     cb.set_label('nm', fontsize=12, rotation=0)
+            cb.set_label('Travel Time (sec)', fontsize=15, rotation=0)
+        if self.fieldtype=='Amp':
+            cb.set_label('nm', fontsize=12, rotation=0)
         if contour:
             # levels=np.linspace(ma.getdata(self.Zarr).min(), ma.getdata(self.Zarr).max(), 20)
             levels=np.linspace(ma.getdata(self.Zarr).min(), ma.getdata(self.Zarr).max(), 60)
@@ -798,7 +796,7 @@ class Field2d(object):
             plt.show()
         return
     
-    def plot_lplc(self, projection='lambert', contour=False, geopolygons=None, vmin=-10, vmax=10, showfig=True):
+    def plot_lplc(self, projection='lambert', contour=False, geopolygons=None, vmin=None, vmax=None, showfig=True):
         """Plot data with contour
         """
         m=self._get_basemap(projection=projection, geopolygons=geopolygons)
@@ -808,10 +806,10 @@ class Field2d(object):
             raise ValueError('Incompatible shape for lplc and lon/lat array!')
         x, y=m(self.lonArr, self.latArr)
         # cmap =discrete_cmap(int(vmax-vmin)/2+1, 'seismic')
-        m.pcolormesh(x, y, self.lplc, cmap= 'seismic', shading='gouraud', vmin=vmin, vmax=vmax)
+        m.pcolormesh(x, y, self.lplc, cmap='seismic', shading='gouraud', vmin=vmin, vmax=vmax)
         cb=m.colorbar()
-        cb.ax.tick_params(labelsize=5) 
-        # levels=np.linspace(self.lplc.min(), self.lplc.max(), 100)
+        cb.ax.tick_params(labelsize=15) 
+        levels=np.linspace(self.lplc.min(), self.lplc.max(), 100)
         if contour:
             plt.contour(x, y, self.lplc, colors='k', levels=levels)
         if showfig:
@@ -864,6 +862,7 @@ class Field2d(object):
             raise ValueError('Incompatible shape for deflection and lon/lat array!')
         x, y=m(self.lonArr, self.latArr)
         cmap=pycpt.load.gmtColormap('./GMT_panoply.cpt')
+        cmap='bwr'
         cmap =discrete_cmap(int(vmax-vmin)/4, cmap)
         im=m.pcolormesh(x, y, self.diffaArr, cmap=cmap, shading='gouraud', vmin=vmin, vmax=vmax)
         cb = m.colorbar(im, "bottom", size="3%", pad='2%')
@@ -874,14 +873,65 @@ class Field2d(object):
                 dset=pyasdf.ASDFDataSet(rayASDF)
                 dlon=self.dlon*rayfactor
                 dlat=self.dlat*rayfactor
-                Nlon=round((self.maxlon_i-self.minlon_i)/dlon)+1
-                Nlat=round((self.maxlat_i-self.minlat_i)/dlat)+1
-                lons=np.arange(Nlon)*dlon+self.minlon_i
-                lats=np.arange(Nlat)*dlat+self.minlat_i
+                Nlon=round((self.maxlon-self.minlon)/dlon)+1
+                Nlat=round((self.maxlat-self.minlat)/dlat)+1
+                lons=np.arange(Nlon)*dlon+self.minlon
+                lats=np.arange(Nlat)*dlat+self.minlat
                 for lon in lons:
                     for lat in lats:
                         # if lat > 40.:
                         #     continue
+                        rayname='L'+str(int(lon*100))+'L'+str(int(lat*100))
+                        # print rayname
+                        if rayname in dset.auxiliary_data.Raypath:
+                            raylons, raylats=dset.auxiliary_data.Raypath[rayname].data.value
+                            rayx, rayy=m(raylons, raylats)
+                            m.plot(rayx, rayy, 'g', lw=1)
+            except:
+                pass
+        if prop:
+            self.plot_propagation(inbasemap=m, factor=factor)
+        if showfig:
+            plt.show()
+        return
+    
+    
+    def plot_diffa_special(self, projection='lambert', factor=3, prop=True, geopolygons=None, cmap='seismic', vmin=-16, vmax=16, showfig=True, rayASDF='', rayfactor=30):
+        """Plot data with contour
+        """
+        m=self._get_basemap(projection=projection, geopolygons=geopolygons)
+        if self.lonArr.shape[0]-2==self.diffaArr.shape[0] and self.lonArr.shape[1]-2==self.diffaArr.shape[1]:
+            self.cut_edge(1,1)
+        elif self.lonArr.shape[0]!=self.diffaArr.shape[0] or self.lonArr.shape[1]!=self.diffaArr.shape[1]:
+            raise ValueError('Incompatible shape for deflection and lon/lat array!')
+        x, y=m(self.lonArr, self.latArr)
+        cmap=pycpt.load.gmtColormap('./GMT_panoply.cpt')
+        cmap='bwr'
+        cmap =discrete_cmap(int(vmax-vmin)/4, cmap)
+        im=m.pcolormesh(x, y, self.diffaArr, cmap=cmap, shading='gouraud', vmin=vmin, vmax=vmax)
+        cb = m.colorbar(im, "bottom", size="3%", pad='2%')
+        cb.ax.tick_params(labelsize=10)
+        cb.set_label('Great Circle Deflection (deg)', fontsize=15, rotation=0)
+        cb.ax.tick_params(labelsize=15)
+        #
+        evx, evy=m(129., 41.306)
+        plt.plot(evx, evy, 'y*', markersize=20)
+        #
+        if os.path.isfile(rayASDF):
+            try:
+                dset=pyasdf.ASDFDataSet(rayASDF)
+                dlon=self.dlon*rayfactor
+                dlat=self.dlat*rayfactor
+                Nlon=round((self.maxlon-self.minlon)/dlon)+1
+                Nlat=round((self.maxlat-self.minlat)/dlat)+1
+                lons=np.arange(Nlon)*dlon+self.minlon
+                lats=np.arange(Nlat)*dlat+self.minlat
+                for lon in lons:
+                    for lat in lats:
+                        evlo=129.0; evla=41.306
+                        az, baz, dist = geodist.inv(evlo, evla, lon, lat) 
+                        if az>-105.5 or az < -106.5:
+                            continue
                         rayname='L'+str(int(lon*100))+'L'+str(int(lat*100))
                         if rayname in dset.auxiliary_data.Raypath:
                             raylons, raylats=dset.auxiliary_data.Raypath[rayname].data.value
@@ -920,19 +970,19 @@ class Field2d(object):
             plt.show()
         return
     
-    def plot_appV(self, projection='lambert', geopolygons=None, showfig=True):
+    def plot_appV(self, projection='lambert', geopolygons=None, showfig=True,  vmin=None, vmax=None):
         """Plot data with contour
         """
-        m=self._get_basemap_1(projection=projection, geopolygons=geopolygons)
+        m=self._get_basemap(projection=projection, geopolygons=geopolygons)
         x, y=m(self.lonArr, self.latArr)
         cmap = colors.get_colormap('tomo_80_perc_linear_lightness')
-        im=m.pcolormesh(x, y, self.appV, cmap=cmap, shading='gouraud', vmin=2.9, vmax=3.4)
+        im=m.pcolormesh(x, y, self.appV, cmap=cmap, shading='gouraud', vmin=vmin, vmax=vmax)
         # ###
         # stlaLst=np.arange(5)*0.25+33.25
         # stlo=110.
         # for stla in stlaLst:
         #     xs, ys=m(stlo, stla)
-        #     plt.plot(xs,ys,'^r', markersize=15)
+        #     plt.plot(xs,ys,'^g', markersize=10)
         # stlaLst=np.arange(5)*0.25+29
         # stlo=115.
         # for stla in stlaLst:
@@ -940,28 +990,31 @@ class Field2d(object):
         #     plt.plot(xs,ys,'^b', markersize=15)
         ###
         ###
-        # cb=m.colorbar()
-        cb = m.colorbar(im, "right", size="3%", pad='2%')
-        cb.ax.tick_params(labelsize=4)
-        cb.set_label(r"$\frac{\mathrm{km}}{\mathrm{s}}$", fontsize=8, rotation=0)
+        
+        # xs, ys=m(106.5, 33.5)
+        # plt.plot(xs,ys,'^g', markersize=10)
+        try:
+            vrange=vmin+np.arange((vmax-vmin)/0.1+1)*0.1
+            cb = m.colorbar(im, "bottom", size="3%", pad='2%', ticks=vrange)
+        except:
+            cb = m.colorbar(im, "bottom", size="3%", pad='2%')
+        cb.ax.tick_params(labelsize=15)
+        # cb.set_label(r"$\frac{\mathrm{km}}{\mathrm{s}}$", fontsize=15, rotation=0)
+        cb.set_label("Apparent Phase Velocity (km/sec)", fontsize=15, rotation=0)
         if showfig:
             plt.show()
         return
     
     
-    def get_azi_dist(self, evlo, evla):
+    def get_distArr(self, evlo, evla):
         """Get epicentral distance array
         """
         evloArr=np.ones(self.lonArr.shape)*evlo
         evlaArr=np.ones(self.lonArr.shape)*evla
         g = Geod(ellps='WGS84')
-        az, baz, distevent = g.inv(evloArr, evlaArr, self.lonArr, self.latArr)
+        az, baz, distevent = g.inv(self.lonArr, self.latArr, evloArr, evlaArr)
         distevent=distevent/1000.
         self.distArr=distevent
-        self.aziArr=az
-        self.aziArr[az<0.]=360.+az[az<0.]
-        self.bazArr=baz
-        self.bazArr[baz<0.]=360.+baz[baz<0.]
         return
     
     
@@ -1141,57 +1194,7 @@ class Field2d(object):
         out_diff = out_diff[:self.Nlat, :self.Nlon]/(self.dlon_kmArr**m)/(self.dlat_kmArr**n)
         return out_diff
     
-    def replace_appv_lplc(self, evlo, evla, invfname, cdist=150., vref=3.0):
-        self.get_azi_dist(evlo=evlo, evla=evla)
-        # self.distArr[self.distArr==0.]=0.001
-        lplc_homo=1./self.distArr/vref
-        # self.lplc[(self.lplc>lplc_homo*1.1)*(self.distArr<cdist)]=lplc_homo[(self.lplc>lplc_homo*1.1)*(self.distArr<cdist)]
-        # self.lplc[(self.distArr<cdist)]=lplc_homo[(self.distArr<cdist)]
-        # self.lplc=lplc_homo
-        inArr=np.loadtxt(invfname)
-        inV=inArr[:,2]
-        inV=inV.reshape(self.Nlat, self.Nlon)
-        # self.appV[(self.appV>inV)*(self.distArr<cdist)]=inV[(self.appV>inV)*(self.distArr<cdist)]
-        self.appV[(self.distArr<cdist)]=inV[(self.distArr<cdist)]
-        
-    def get_dist_data(self, evlo, evla, mindist, maxdist, outfname, minazi=-1., maxazi=361., vmin=None, vmax=None, projection='lambert',geopolygons=None):
-        """ quick and dirty
-        """
-        self.get_azi_dist(evlo=evlo, evla=evla)
-        index=np.where((self.distArr>mindist)*(self.distArr<maxdist)*(self.aziArr>minazi)*(self.aziArr<maxazi))
-        aziArr=self.aziArr[index]
-        Zarr=self.Zarr[index]
-        lonArr=self.lonArr[index]
-        latArr=self.latArr[index]
-        OutArr=np.append(aziArr, lonArr)
-        OutArr=np.append(OutArr, latArr)
-        OutArr=np.append(OutArr, Zarr)
-        OutArr=OutArr.reshape(4, lonArr.size)
-        OutArr=OutArr.T
-        np.savetxt(outfname, OutArr, fmt='%g')
-        
-        m=self._get_basemap(projection=projection, geopolygons=geopolygons)
-        x, y=m(self.lonArr, self.latArr)
-        if self.fieldtype=='Ms':
-            cmap=pycpt.load.gmtColormap('./GMT_panoply.cpt')
-            cmap =discrete_cmap(int((vmax-vmin)/0.1)+1, cmap)
-            im=m.pcolormesh(x, y, self.Zarr, cmap=cmap, shading='gouraud', vmin=vmin, vmax=vmax)
-            cb = m.colorbar(im, "bottom", size="3%", pad='2%', ticks=np.arange(20)*0.1+2.5)
-        else:
-            im=m.pcolormesh(x, y, self.Zarr, cmap='gist_ncar_r', shading='gouraud', vmin=vmin, vmax=vmax)
-            cb = m.colorbar(im, "bottom", size="3%", pad='2%')#, ticks=np.arange(17)*100.)
-        cb.ax.tick_params(labelsize=10)
-        xs, ys = m(lonArr, latArr)
-        plt.plot(xs, ys, '^b')
-        if self.fieldtype=='Tph' or self.fieldtype=='Tgr':
-            cb.set_label('sec', fontsize=12, rotation=0)
-        # if self.fieldtype=='Amp':
-        #     cb.set_label('nm', fontsize=12, rotation=0)
-        # plt.show()
-        
-        # plt.plot(aziArr, Zarr, 'ob')
-        # plt.show()
-            
+    
             
                 
                     

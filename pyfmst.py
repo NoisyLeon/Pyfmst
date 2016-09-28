@@ -278,16 +278,18 @@ class vmodel(object):
         self._change_v()
         return
     
-    def plot(self, projection='lambert', geopolygons=None):
-        fig=plt.figure(num=None, figsize=(12, 12), dpi=80, facecolor='w', edgecolor='k')
+    def plot(self, projection='lambert', geopolygons=None, vmin=None, vmax=None):
+        # fig=plt.figure(num=None, figsize=(12, 12), dpi=80, facecolor='w', edgecolor='k')
         lat_centre = (self.maxlat+self.minlat)/2.0
         lon_centre = (self.maxlon+self.minlon)/2.0
         if projection=='merc':
-            m=Basemap(projection='merc', llcrnrlat=self.minlat, urcrnrlat=self.minlat, llcrnrlon=self.minlon,
-                      urcrnrlon=self.minlon, lat_ts=20, resolution=resolution)
-            m.drawparallels(np.arange(self.lat_min,self.lat_max,self.d_lon), labels=[1,0,0,1])
-            m.drawmeridians(np.arange(self.lon_min,self.lon_max,self.d_lat), labels=[1,0,0,1])
-        
+            m=Basemap(projection='merc', llcrnrlat=self.minlat-5., urcrnrlat=self.maxlat+5., llcrnrlon=self.minlon-5.,
+                      urcrnrlon=self.maxlon+5., lat_ts=20, resolution=resolution)
+            # m.drawparallels(np.arange(self.minlat,self.maxlat,self.dlat), labels=[1,0,0,1])
+            # m.drawmeridians(np.arange(self.minlon,self.maxlon,self.dlon), labels=[1,0,0,1])
+            m.drawparallels(np.arange(-80.0,80.0,5.0), labels=[1,0,0,1])
+            m.drawmeridians(np.arange(-170.0,170.0,5.0), labels=[1,0,0,1])
+            m.drawstates(color='g', linewidth=2.)
         elif projection=='global':
             m=Basemap(projection='ortho',lon_0=lon_centre, lat_0=lat_centre, resolution=resolution)
             m.drawparallels(np.arange(-80.0,80.0,10.0), labels=[1,0,0,1])
@@ -305,11 +307,11 @@ class vmodel(object):
             distEW, az, baz=obspy.geodetics.gps2dist_azimuth(self.minlat, self.minlon,
                                 self.minlat, self.maxlon) # distance is in m
             distNS, az, baz=obspy.geodetics.gps2dist_azimuth(self.minlat, self.minlon,
-                                self.maxlat+2, self.minlon) # distance is in m
+                                self.maxlat+2., self.minlon) # distance is in m
             m = Basemap(width=distEW, height=distNS, rsphere=(6378137.00,6356752.3142), resolution='l', projection='lcc',\
-                lat_1=self.minlat, lat_2=self.maxlat, lon_0=lon_centre, lat_0=lat_centre+1.5)
-            m.drawparallels(np.arange(-80.0,80.0,10.0), linewidth=2, dashes=[2,2], labels=[1,0,0,0], fontsize=15)
-            m.drawmeridians(np.arange(-170.0,170.0,10.0), linewidth=2, dashes=[2,2], labels=[0,0,1,1], fontsize=15)
+                lat_1=self.minlat, lat_2=self.maxlat, lon_0=lon_centre, lat_0=lat_centre+1)
+            m.drawparallels(np.arange(-80.0,80.0,10.0), linewidth=1, dashes=[2,2], labels=[1,1,0,0], fontsize=15)
+            m.drawmeridians(np.arange(-170.0,170.0,10.0), linewidth=1, dashes=[2,2], labels=[0,0,1,0], fontsize=15)
         m.drawcoastlines(linewidth=1.0)
         m.drawcountries()
         # m.drawmapboundary(fill_color=[1.0,1.0,1.0])
@@ -317,13 +319,23 @@ class vmodel(object):
         # m.drawlsmask(land_color='0.8', ocean_color='#99ffff')
         m.drawmapboundary(fill_color="white")
         cmap = colors.get_colormap('tomo_80_perc_linear_lightness')
+        # #
+        # evx, evy=m(129., 41.306)
+        # plt.plot(evx, evy, 'y*', markersize=20)
+        # #
         x, y=m(self.lonArr, self.latArr)
-        m.pcolormesh(x, y, self.vArr, cmap=cmap, shading='gouraud', vmin=2.9, vmax=3.4)
+        im=m.pcolormesh(x, y, self.vArr, cmap=cmap, shading='gouraud', vmin=vmin, vmax=vmax)
         try:
             geopolygons.PlotPolygon(inbasemap=m)
         except:
             pass
-        m.colorbar()
+        try:
+            vrange=vmin+np.arange((vmax-vmin)/0.1+1)*0.1
+            cb = m.colorbar(im, "bottom", size="3%", pad='2%', ticks=vrange)
+        except:
+            cb = m.colorbar(im, "bottom", size="3%", pad='2%')
+        cb.ax.tick_params(labelsize=15)
+        cb.set_label("Input Phase Velocity (km/sec)", fontsize=15, rotation=0)
         plt.show()
         return
     
