@@ -339,7 +339,15 @@ class vmodel(object):
         plt.show()
         return
     
-    def write(self, outdir):
+    def write(self, outfname):
+        outArr=np.concatenate((self.lonArr, self.latArr, self.vArr))
+        outArr=outArr.reshape((3,self.lonArr.size))
+        outArr=outArr.T
+        np.savetxt(outfname, outArr, fmt='%g')
+        return
+
+    
+    def write4fmst(self, outdir):
         """
         """
         if not os.path.isdir(outdir):
